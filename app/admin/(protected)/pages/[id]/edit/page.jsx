@@ -16,7 +16,7 @@ export default async function EditPagePage({ params }) {
   const session = await getServerSession(adminAuthOptions);
   const { activeLocales, defaultLocale } = await getLocaleConfig();
 
-  const [page, allPages] = await Promise.all([
+  const [page] = await Promise.all([
     prisma.page.findUnique({
       where: { id },
       include: {
@@ -39,23 +39,12 @@ export default async function EditPagePage({ params }) {
           orderBy: { sortOrder: 'asc' },
           include: { article: { include: { translations: { select: { locale: true, title: true } } } } },
         },
-      },
-    }),
-    prisma.page.findMany({
-      orderBy: { sortOrder: 'asc' },
-      select: {
-        id: true,
-        translations: { where: { locale: defaultLocale }, select: { title: true } },
+        formFields: { orderBy: { sortOrder: 'asc' } },
       },
     }),
   ]);
 
   if (!page) notFound();
-
-  const parentOptions = allPages.map((p) => ({
-    id: p.id,
-    label: p.translations[0]?.title || `Page #${p.id}`,
-  }));
 
   // Normalise connections into the picker's expected format
   const initialConnections = {
@@ -115,10 +104,10 @@ export default async function EditPagePage({ params }) {
         initial={page}
         activeLocales={activeLocales}
         defaultLocale={defaultLocale}
-        parentPages={parentOptions}
         role={session.user.role}
         pageId={id}
         initialConnections={initialConnections}
+        initialFormFields={page.formFields ?? []}
       />
     </div>
   );

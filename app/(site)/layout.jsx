@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import prisma from '@/lib/prisma';
 import { getLocaleConfig } from '@/lib/settings';
 import { getRequestLocale } from '@/lib/locale';
+import Footer from '@/components/site/Footer';
 import Navbar from '@/components/site/Navbar';
 import LocaleSwitcher from '@/components/site/LocaleSwitcher';
 import SiteBootstrapInit from '@/components/site/SiteBootstrapInit';
@@ -45,7 +46,7 @@ export default async function SiteLayout({ children }) {
   return (
     <SiteSessionProvider>
       <SiteBootstrapInit />
-
+      <div className="d-flex flex-column min-vh-100">
       {/* Navbar — populated from the navbar editor */}
       <Navbar />
 
@@ -62,9 +63,10 @@ export default async function SiteLayout({ children }) {
         </div>
       )}
 
-      {children}
+      <div className="flex-grow-1">{children}</div>
 
-      {/* Footer slot — customised per client */}
+        <Footer />
+      </div>
     </SiteSessionProvider>
   );
 }

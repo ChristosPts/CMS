@@ -16,11 +16,14 @@ const createSchema = z.object({
   template:       z.enum(['BASIC', 'GRID', 'ARTICLE_LIST', 'ARTICLE_SINGLE', 'CONTACT', 'HOME']),
   status:         z.enum(['PUBLISHED', 'DRAFT', 'HIDDEN']).default('DRAFT'),
   sortOrder:      z.number().int().default(0),
-  parentId:       z.number().int().nullable().optional(),
   visibility:     z.enum(['PUBLIC', 'AUTHENTICATED_ONLY', 'ROLE_RESTRICTED']).default('PUBLIC'),
   restrictedRole: z.string().optional().nullable(),
-  slug:           z.string().optional(), // ADMIN only; auto-generated otherwise
+  slug:           z.string().optional(),
   featuredImage:  z.string().nullable().optional(),
+  mapEmbedUrl:    z.string().nullable().optional(),
+  contactPhone:   z.string().nullable().optional(),
+  contactEmail:   z.string().nullable().optional(),
+  contactAddress: z.string().nullable().optional(),
   galleries:      z.array(z.object({ id: z.number().int(), sortOrder: z.number().int() })).optional().default([]),
   downloads:      z.array(z.object({ id: z.number().int(), sortOrder: z.number().int() })).optional().default([]),
   articles:       z.array(z.object({ id: z.number().int(), sortOrder: z.number().int() })).optional().default([]),
@@ -46,11 +49,7 @@ export async function GET(req) {
   const where = {
     ...(status   ? { status }   : {}),
     ...(template ? { template } : {}),
-    ...(search   ? {
-      translations: {
-        some: { title: { contains: search } },
-      },
-    } : {}),
+    ...(search   ? { translations: { some: { title: { contains: search } } } } : {}),
   };
 
   const [pages, total] = await Promise.all([
@@ -61,7 +60,7 @@ export async function GET(req) {
       take:  perPage,
       select: {
         id: true, slug: true, template: true, status: true,
-        sortOrder: true, parentId: true, visibility: true, createdAt: true, updatedAt: true,
+        sortOrder: true, visibility: true, createdAt: true, updatedAt: true,
         translations: { select: { locale: true, title: true } },
       },
     }),
@@ -87,7 +86,6 @@ export async function POST(req) {
 
   const d = parsed.data;
 
-  // Generate slug from default locale title (or first translation title)
   const defaultTranslation = d.translations[0];
   let slug = session.user.role === 'ADMIN' && d.slug
     ? d.slug.trim()
@@ -95,7 +93,6 @@ export async function POST(req) {
 
   if (!slug) slug = 'page';
 
-  // Ensure uniqueness
   let candidate = slug;
   let suffix = 2;
   while (await prisma.page.findUnique({ where: { slug: candidate } })) {
@@ -108,25 +105,23 @@ export async function POST(req) {
       template:       d.template,
       status:         d.status,
       sortOrder:      d.sortOrder,
-      parentId:       d.parentId ?? null,
       visibility:     d.visibility,
       restrictedRole: d.restrictedRole ?? null,
-      featuredImage:  d.featuredImage ?? null,
+      featuredImage:  d.featuredImage  ?? null,
+      mapEmbedUrl:    d.mapEmbedUrl    ?? null,
+      contactPhone:   d.contactPhone   ?? null,
+      contactEmail:   d.contactEmail   ?? null,
+      contactAddress: d.contactAddress ?? null,
       translations: {
         create: d.translations.map((t) => ({
-          locale:          t.locale,
-          title:           t.title,
-          summary:         t.summary,
-          content:         t.content,
-          metaTitle:       t.metaTitle,
-          metaDescription: t.metaDescription,
+          locale: t.locale, title: t.title, summary: t.summary,
+          content: t.content, metaTitle: t.metaTitle, metaDescription: t.metaDescription,
         })),
       },
     },
     include: { translations: true },
   });
 
-  // Sync connections
   if (d.galleries.length || d.downloads.length || d.articles.length) {
     await prisma.$transaction([
       ...d.galleries.map(({ id, sortOrder }) =>

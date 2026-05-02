@@ -7,6 +7,7 @@ import RichTextEditor from './RichTextEditor';
 import FeaturedImagePicker from './FeaturedImagePicker';
 import ConnectionPicker from './ConnectionPicker';
 import GridItemsEditor from './GridItemsEditor';
+import FormFieldBuilder from './FormFieldBuilder';
 
 const TEMPLATES = [
   { value: 'BASIC',          label: 'Basic' },
@@ -23,7 +24,7 @@ const VISIBILITIES = [
   { value: 'ROLE_RESTRICTED',     label: 'Role restricted' },
 ];
 
-export default function PageForm({ initial, activeLocales, defaultLocale, parentPages, role, pageId, initialConnections }) {
+export default function PageForm({ initial, activeLocales, defaultLocale, role, pageId, initialConnections, initialFormFields }) {
   const router  = useRouter();
   const isEdit  = Boolean(pageId);
 
@@ -31,7 +32,6 @@ export default function PageForm({ initial, activeLocales, defaultLocale, parent
   const [template,       setTemplate]       = useState(initial?.template       ?? 'BASIC');
   const [status,         setStatus]         = useState(initial?.status         ?? 'DRAFT');
   const [sortOrder,      setSortOrder]      = useState(initial?.sortOrder      ?? 0);
-  const [parentId,       setParentId]       = useState(initial?.parentId       ?? '');
   const [visibility,     setVisibility]     = useState(initial?.visibility     ?? 'PUBLIC');
   const [restrictedRole, setRestrictedRole] = useState(initial?.restrictedRole ?? '');
   const [slug,           setSlug]           = useState(initial?.slug           ?? '');
@@ -41,6 +41,12 @@ export default function PageForm({ initial, activeLocales, defaultLocale, parent
   const [connGalleries,  setConnGalleries]  = useState(initialConnections?.galleries  ?? []);
   const [connDownloads,  setConnDownloads]  = useState(initialConnections?.downloads  ?? []);
   const [connArticles,   setConnArticles]   = useState(initialConnections?.articles   ?? []);
+  // CONTACT template fields
+  const [mapEmbedUrl,    setMapEmbedUrl]    = useState(initial?.mapEmbedUrl    ?? '');
+  const [contactPhone,   setContactPhone]   = useState(initial?.contactPhone   ?? '');
+  const [contactEmail,   setContactEmail]   = useState(initial?.contactEmail   ?? '');
+  const [contactAddress, setContactAddress] = useState(initial?.contactAddress ?? '');
+  const [formFields,     setFormFields]     = useState(initialFormFields ?? []);
 
   // ── Translations ─────────────────────────────────────────────────────────
   // Build initial translations map: locale → { title, summary, content, metaTitle, metaDescription }
@@ -89,12 +95,16 @@ export default function PageForm({ initial, activeLocales, defaultLocale, parent
     const payload = {
       template,
       status,
-      sortOrder: Number(sortOrder),
-      parentId:       parentId ? Number(parentId) : null,
+      sortOrder:      Number(sortOrder),
       visibility,
       restrictedRole: visibility === 'ROLE_RESTRICTED' ? restrictedRole : null,
       slug:           role === 'ADMIN' ? slug : undefined,
       featuredImage:  featuredImage ?? null,
+      mapEmbedUrl:    mapEmbedUrl   || null,
+      contactPhone:   contactPhone  || null,
+      contactEmail:   contactEmail  || null,
+      contactAddress: contactAddress || null,
+      formFields,
       gridItems,
       galleries:  connGalleries.map((g) => ({ id: g.id, sortOrder: g.sortOrder })),
       downloads:  connDownloads.map((d) => ({ id: d.id, sortOrder: d.sortOrder })),
@@ -271,16 +281,6 @@ export default function PageForm({ initial, activeLocales, defaultLocale, parent
               </div>
 
               <div className="mb-3">
-                <label className="form-label small">Parent Page</label>
-                <select className="form-select form-select-sm" value={parentId} onChange={(e) => setParentId(e.target.value)}>
-                  <option value="">— None —</option>
-                  {parentPages.filter((p) => p.id !== pageId).map((p) => (
-                    <option key={p.id} value={p.id}>{p.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="mb-3">
                 <label className="form-label small">Visibility</label>
                 <select className="form-select form-select-sm" value={visibility} onChange={(e) => setVisibility(e.target.value)}>
                   {VISIBILITIES.map((v) => (
@@ -311,6 +311,38 @@ export default function PageForm({ initial, activeLocales, defaultLocale, parent
               <FeaturedImagePicker value={featuredImage} onChange={setFeaturedImage} />
             </div>
           </div>
+
+          {/* Contact template — map + contact info */}
+          {template === 'CONTACT' && (
+            <div className="card border-0 shadow-sm mb-3">
+              <div className="card-header fw-semibold">Contact Info &amp; Map</div>
+              <div className="card-body">
+                <div className="mb-3">
+                  <label className="form-label small">Map Embed URL</label>
+                  <input
+                    type="url"
+                    className="form-control form-control-sm font-monospace"
+                    value={mapEmbedUrl}
+                    onChange={(e) => setMapEmbedUrl(e.target.value)}
+                    placeholder="https://maps.google.com/maps?q=…&output=embed"
+                  />
+                  <div className="form-text">Paste the <code>src</code> from a Google Maps embed iframe.</div>
+                </div>
+                <div className="mb-3">
+                  <label className="form-label small">Phone</label>
+                  <input type="text" className="form-control form-control-sm" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="+1 555 000 0000" />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label small">Display Email</label>
+                  <input type="email" className="form-control form-control-sm" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="hello@example.com" />
+                </div>
+                <div className="mb-0">
+                  <label className="form-label small">Address</label>
+                  <textarea className="form-control form-control-sm" rows={3} value={contactAddress} onChange={(e) => setContactAddress(e.target.value)} placeholder="123 Main St…" />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Connections — galleries */}
           <div className="card border-0 shadow-sm mb-3">
@@ -407,6 +439,30 @@ export default function PageForm({ initial, activeLocales, defaultLocale, parent
         <div className="mt-4 alert alert-info">
           <i className="bi bi-info-circle me-2" />
           Save the page first, then come back to add grid items.
+        </div>
+      )}
+
+      {/* Form Field Builder (CONTACT template) */}
+      {template === 'CONTACT' && isEdit && (
+        <div className="mt-4">
+          <div className="card border-0 shadow-sm">
+            <div className="card-header fw-semibold">Form Fields</div>
+            <div className="card-body">
+              <FormFieldBuilder
+                activeLocales={activeLocales}
+                defaultLocale={defaultLocale}
+                value={formFields}
+                onChange={setFormFields}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {template === 'CONTACT' && !isEdit && (
+        <div className="mt-4 alert alert-info">
+          <i className="bi bi-info-circle me-2" />
+          Save the page first, then come back to configure form fields.
         </div>
       )}
     </form>

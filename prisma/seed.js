@@ -20,13 +20,24 @@ async function main() {
 
   // ── Default settings ───────────────────────────────────────────────────
   const defaults = [
-    { key: 'site_name',            value: 'My Site' },
-    { key: 'active_locales',       value: JSON.stringify(['en', 'el']) },
-    { key: 'default_locale',       value: 'en' },
-    { key: 'contact_email',        value: '' },
-    { key: 'registration_enabled', value: 'true' },
-    { key: 'maintenance_mode',     value: 'false' },
-    { key: 'mail_provider',        value: 'gmail' },
+    { key: 'site_name',                   value: 'My Site' },
+    { key: 'active_locales',              value: JSON.stringify(['en', 'el']) },
+    { key: 'default_locale',              value: 'en' },
+    { key: 'contact_email',               value: '' },
+    { key: 'registration_enabled',        value: 'true' },
+    { key: 'maintenance_mode',            value: 'false' },
+    { key: 'mail_provider',               value: 'gmail' },
+    { key: 'logo',                        value: '' },
+    { key: 'register_salutation_enabled', value: 'false' },
+    { key: 'register_phone_enabled',      value: 'false' },
+    { key: 'register_company_enabled',    value: 'false' },
+    { key: 'footer_description',          value: JSON.stringify({ en: '', el: '' }) },
+    { key: 'footer_copyright',            value: '' },
+    { key: 'footer_privacy_url',          value: '' },
+    { key: 'footer_terms_url',            value: '' },
+    { key: 'footer_email',                value: '' },
+    { key: 'footer_phone',                value: '' },
+    { key: 'footer_address',              value: '' },
   ];
 
   for (const s of defaults) {

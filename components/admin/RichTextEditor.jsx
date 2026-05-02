@@ -15,6 +15,50 @@ import TableCell from '@tiptap/extension-table-cell';
 import { Extension } from '@tiptap/core';
 import styles from './RichTextEditor.module.css';
 
+// ── Cell styling attributes ────────────────────────────────────────────────
+const cellStyleAttrs = {
+  backgroundColor: {
+    default: null,
+    parseHTML: (el) => el.style.backgroundColor || null,
+    renderHTML: (a) => a.backgroundColor ? { style: `background-color: ${a.backgroundColor}` } : {},
+  },
+  borderColor: {
+    default: null,
+    parseHTML: (el) => el.style.borderColor || null,
+    renderHTML: (a) => a.borderColor ? { style: `border-color: ${a.borderColor}; border-style: solid` } : {},
+  },
+  borderWidth: {
+    default: null,
+    parseHTML: (el) => el.style.borderWidth || null,
+    renderHTML: (a) => a.borderWidth ? { style: `border-width: ${a.borderWidth}` } : {},
+  },
+};
+
+const CustomTableCell   = TableCell.extend({   addAttributes() { return { ...this.parent?.(), ...cellStyleAttrs }; } });
+const CustomTableHeader = TableHeader.extend({ addAttributes() { return { ...this.parent?.(), ...cellStyleAttrs }; } });
+
+// Sets an attribute on the nearest ancestor tableCell or tableHeader node
+const SetCellAttribute = Extension.create({
+  name: 'setCellAttribute',
+  addCommands() {
+    return {
+      setCellAttribute: (attribute, value) => ({ state, dispatch }) => {
+        const { selection, tr } = state;
+        const { $from } = selection;
+        for (let d = $from.depth; d > 0; d--) {
+          const node = $from.node(d);
+          if (node.type.name === 'tableCell' || node.type.name === 'tableHeader') {
+            tr.setNodeMarkup($from.before(d), undefined, { ...node.attrs, [attribute]: value || null });
+            if (dispatch) dispatch(tr);
+            return true;
+          }
+        }
+        return false;
+      },
+    };
+  },
+});
+
 // ── Font Size extension (built on TextStyle) ───────────────────────────────
 const FontSize = Extension.create({
   name: 'fontSize',
@@ -56,8 +100,9 @@ export default function RichTextEditor({ value, onChange, placeholder = '' }) {
       FontSize,
       Table.configure({ resizable: false }),
       TableRow,
-      TableHeader,
-      TableCell,
+      CustomTableHeader,
+      CustomTableCell,
+      SetCellAttribute,
     ],
     content: value || '',
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
@@ -185,6 +230,65 @@ export default function RichTextEditor({ value, onChange, placeholder = '' }) {
             <button type="button" title="Del column" className={styles.toolBtn} onClick={() => editor.chain().focus().deleteColumn().run()}><i className="bi bi-dash-square" /></button>
             <button type="button" title="Del row"    className={styles.toolBtn} onClick={() => editor.chain().focus().deleteRow().run()}><i className="bi bi-dash-circle" /></button>
             <button type="button" title="Del table"  className={styles.toolBtn} onClick={() => editor.chain().focus().deleteTable().run()}><i className="bi bi-trash" /></button>
+            <span className={styles.sep} />
+            {/* Cell background */}
+            <div className={styles.colorPicker} title="Cell background">
+              <input
+                type="color"
+                className={styles.colorInput}
+                value={
+                  (editor.isActive('tableHeader')
+                    ? editor.getAttributes('tableHeader').backgroundColor
+                    : editor.getAttributes('tableCell').backgroundColor) ?? '#ffffff'
+                }
+                onChange={(e) =>
+                  editor.chain().focus().setCellAttribute('backgroundColor', e.target.value).run()
+                }
+              />
+            </div>
+            <button
+              type="button"
+              title="Clear cell background"
+              className={styles.toolBtn}
+              onClick={() => editor.chain().focus().setCellAttribute('backgroundColor', null).run()}
+            >
+              <i className="bi bi-eraser" />
+            </button>
+            {/* Cell border color */}
+            <div className={styles.colorPicker} title="Cell border color">
+              <input
+                type="color"
+                className={styles.colorInput}
+                value={
+                  (editor.isActive('tableHeader')
+                    ? editor.getAttributes('tableHeader').borderColor
+                    : editor.getAttributes('tableCell').borderColor) ?? '#dee2e6'
+                }
+                onChange={(e) =>
+                  editor.chain().focus().setCellAttribute('borderColor', e.target.value).run()
+                }
+              />
+            </div>
+            {/* Cell border width */}
+            <select
+              className={styles.toolSelect}
+              title="Cell border width"
+              value={
+                (editor.isActive('tableHeader')
+                  ? editor.getAttributes('tableHeader').borderWidth
+                  : editor.getAttributes('tableCell').borderWidth) ?? ''
+              }
+              onChange={(e) =>
+                editor.chain().focus().setCellAttribute('borderWidth', e.target.value || null).run()
+              }
+            >
+              <option value="">Border</option>
+              <option value="0">None</option>
+              <option value="1px">1px</option>
+              <option value="2px">2px</option>
+              <option value="3px">3px</option>
+              <option value="4px">4px</option>
+            </select>
           </>
         )}
 

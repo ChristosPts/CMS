@@ -1,125 +1,160 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
-export default function AdminSidebar({ role, articleSections, siteName, unreadCount }) {
+function SidebarGroup({ id, label, links, pathname, openId, onToggle, onNavClick }) {
+  const isOpen = openId === id;
+
+  return (
+    <div>
+      <button
+        type="button"
+        className={`sidebar-group-btn ${isOpen ? '' : 'collapsed'}`}
+        onClick={() => onToggle(id)}
+        aria-expanded={isOpen}
+        aria-controls={`sg-${id}`}
+      >
+        {label}
+        <i className="bi bi-chevron-down sg-chevron" />
+      </button>
+
+      <div id={`sg-${id}`} className={`sidebar-group-body collapse ${isOpen ? 'show' : ''}`}>
+        {links.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`nav-link ${pathname.startsWith(link.href) ? 'active' : ''}`}
+            onClick={onNavClick}
+          >
+            <i className={`bi bi-${link.icon}`} />
+            {link.label}
+            {link.badge > 0 && (
+              <span className="badge bg-danger ms-auto" style={{ fontSize: '0.65rem' }}>
+                {link.badge > 99 ? '99+' : link.badge}
+              </span>
+            )}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function AdminSidebar({ role, articleSections, contactPages, siteName, logo, unreadCount, open, onClose }) {
   const pathname = usePathname();
 
-  function isActive(href) {
-    if (href === '/admin/dashboard') return pathname === href;
-    return pathname.startsWith(href);
+  const groups = [
+    {
+      id: 'content',
+      label: 'Content',
+      links: [
+        { href: '/admin/pages', icon: 'layout-text-sidebar-reverse', label: 'Pages', badge: 0 },
+        ...articleSections.map((p) => ({
+          href:  `/admin/${p.slug}`,
+          icon:  'file-earmark-text',
+          label: p.label,
+          badge: 0,
+        })),
+      ],
+    },
+    {
+      id: 'media',
+      label: 'Media',
+      links: [
+        { href: '/admin/galleries', icon: 'images',   label: 'Galleries', badge: 0 },
+        { href: '/admin/downloads', icon: 'download', label: 'Downloads', badge: 0 },
+      ],
+    },
+    {
+      id: 'communication',
+      label: 'Communication',
+      links: [
+        ...contactPages.map((p) => ({
+          href:  `/admin/contact/${p.id}`,
+          icon:  'envelope-paper',
+          label: p.label,
+          badge: 0,
+        })),
+        { href: '/admin/messages', icon: 'envelope', label: 'Messages', badge: unreadCount },
+      ],
+    },
+  ];
+
+  if (role === 'ADMIN') {
+    groups.push({
+      id: 'admin',
+      label: 'Admin',
+      links: [
+        { href: '/admin/users',    icon: 'people',             label: 'Users',    badge: 0 },
+        { href: '/admin/navbar',   icon: 'menu-button-wide',   label: 'Navbar',   badge: 0 },
+        { href: '/admin/footer',   icon: 'layout-text-window', label: 'Footer',   badge: 0 },
+        { href: '/admin/settings', icon: 'gear',               label: 'Settings', badge: 0 },
+      ],
+    });
+  }
+
+  function getActiveGroup() {
+    return groups.find((g) => g.links.some((l) => pathname.startsWith(l.href)))?.id ?? 'content';
+  }
+
+  const [openId, setOpenId] = useState(() => getActiveGroup());
+
+  useEffect(() => {
+    setOpenId(getActiveGroup());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  function toggle(id) {
+    setOpenId((prev) => (prev === id ? null : id));
   }
 
   return (
-    <aside className="admin-sidebar">
-      <Link href="/admin/dashboard" className="sidebar-brand">
-        {siteName || 'CMS Admin'}
-      </Link>
+    <>
+      <div className={`sidebar-overlay ${open ? 'active' : ''}`} onClick={onClose} aria-hidden="true" />
 
-      <nav className="flex-grow-1 py-2">
-        {/* ── Main ───────────────────────────────────────────── */}
-        <div className="sidebar-section">Main</div>
-
-        <Link
-          href="/admin/dashboard"
-          className={`nav-link ${isActive('/admin/dashboard') ? 'active' : ''}`}
-        >
-          <i className="bi bi-speedometer2" />
-          Dashboard
-        </Link>
-
-        {/* ── Content ────────────────────────────────────────── */}
-        {articleSections.length > 0 && (
-          <>
-            <div className="sidebar-section">Content</div>
-            {articleSections.map((page) => (
-              <Link
-                key={page.id}
-                href={`/admin/${page.slug}`}
-                className={`nav-link ${isActive(`/admin/${page.slug}`) ? 'active' : ''}`}
-              >
-                <i className="bi bi-file-earmark-text" />
-                {page.label}
-              </Link>
-            ))}
-          </>
-        )}
-
-        {/* ── Media & Files ───────────────────────────────────── */}
-        <div className="sidebar-section">Media &amp; Files</div>
-
-        <Link
-          href="/admin/galleries"
-          className={`nav-link ${isActive('/admin/galleries') ? 'active' : ''}`}
-        >
-          <i className="bi bi-images" />
-          Galleries
-        </Link>
-
-        <Link
-          href="/admin/downloads"
-          className={`nav-link ${isActive('/admin/downloads') ? 'active' : ''}`}
-        >
-          <i className="bi bi-download" />
-          Downloads
-        </Link>
-
-        {/* ── Management ──────────────────────────────────────── */}
-        <div className="sidebar-section">Management</div>
-
-        <Link
-          href="/admin/pages"
-          className={`nav-link ${isActive('/admin/pages') ? 'active' : ''}`}
-        >
-          <i className="bi bi-layout-text-sidebar-reverse" />
-          Pages
-        </Link>
-
-        <Link
-          href="/admin/users"
-          className={`nav-link ${isActive('/admin/users') ? 'active' : ''}`}
-        >
-          <i className="bi bi-people" />
-          Users
-        </Link>
-
-        <Link
-          href="/admin/messages"
-          className={`nav-link ${isActive('/admin/messages') ? 'active' : ''}`}
-        >
-          <i className="bi bi-envelope" />
-          Messages
-          {unreadCount > 0 && (
-            <span className="badge bg-danger ms-auto" style={{ fontSize: '0.65rem' }}>
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
+      <aside className={`admin-sidebar ${open ? 'sidebar-open' : ''}`}>
+        <Link href="/admin/dashboard" className="sidebar-brand" onClick={onClose}>
+          {logo ? (
+            <Image
+              src={`/uploads/${logo}`}
+              alt={siteName || 'CMS'}
+              width={120}
+              height={28}
+              style={{ objectFit: 'contain', maxHeight: 28, width: 'auto' }}
+              unoptimized
+            />
+          ) : (
+            siteName || 'CMS Admin'
           )}
         </Link>
 
-        {/* ── Admin only ──────────────────────────────────────── */}
-        {role === 'ADMIN' && (
-          <>
-            <div className="sidebar-section">Admin</div>
+        <nav className="flex-grow-1 py-1">
+          <Link
+            href="/admin/dashboard"
+            className={`sidebar-standalone ${pathname === '/admin/dashboard' ? 'active' : ''}`}
+            onClick={onClose}
+          >
+            <i className="bi bi-speedometer2" />
+            Dashboard
+          </Link>
 
-            <Link
-              href="/admin/navbar"
-              className={`nav-link ${isActive('/admin/navbar') ? 'active' : ''}`}
-            >
-              <i className="bi bi-menu-button-wide" />
-              Navbar
-            </Link>
-
-            <Link
-              href="/admin/settings"
-              className={`nav-link ${isActive('/admin/settings') ? 'active' : ''}`}
-            >
-              <i className="bi bi-gear" />
-              Settings
-            </Link>
-          </>
-        )}
-      </nav>
-    </aside>
+          {groups.map((g) => (
+            <SidebarGroup
+              key={g.id}
+              id={g.id}
+              label={g.label}
+              links={g.links}
+              pathname={pathname}
+              openId={openId}
+              onToggle={toggle}
+              onNavClick={onClose}
+            />
+          ))}
+        </nav>
+      </aside>
+    </>
   );
 }

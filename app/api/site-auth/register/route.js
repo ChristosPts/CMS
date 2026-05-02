@@ -9,6 +9,10 @@ const schema = z.object({
   email:           z.string().email('Invalid email address'),
   password:        z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
+  salutation:      z.string().optional(),
+  phone:           z.string().optional(),
+  company:         z.string().optional(),
+  trap:            z.string().optional(),
 }).refine((d) => d.password === d.confirmPassword, {
   message: 'Passwords do not match',
   path:    ['confirmPassword'],
@@ -20,23 +24,23 @@ export async function POST(req) {
     return Response.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
   }
 
+  // Honeypot — silently succeed
+  if (body.trap) return Response.json({ success: true });
+
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return Response.json({ success: false, error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  // Check registration is enabled
   const regSetting = await prisma.setting.findUnique({ where: { key: 'registration_enabled' } });
   if (regSetting?.value === 'false') {
     return Response.json({ success: false, error: 'Registration is currently disabled.' }, { status: 403 });
   }
 
-  const { name, email, password } = parsed.data;
+  const { name, email, password, salutation, phone, company } = parsed.data;
 
-  // Check for existing account
   const existing = await prisma.publicUser.findUnique({ where: { email } });
   if (existing) {
-    // Return same message to avoid user enumeration
     return Response.json({ success: true });
   }
 
@@ -47,13 +51,15 @@ export async function POST(req) {
     data: {
       email,
       password:     hashed,
-      name:         name || null,
+      name:         name      || null,
+      salutation:   salutation || null,
+      phone:        phone      || null,
+      company:      company    || null,
       emailVerified: false,
       verifyToken:  token,
     },
   });
 
-  // Send verification email — failure is non-fatal
   const [siteSetting] = await Promise.all([
     prisma.setting.findUnique({ where: { key: 'site_name' } }),
   ]);

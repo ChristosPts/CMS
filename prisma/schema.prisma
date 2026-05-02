@@ -35,6 +35,15 @@ enum Visibility {
   ROLE_RESTRICTED
 }
 
+enum FormFieldType {
+  TEXT
+  EMAIL
+  PHONE
+  TEXTAREA
+  SELECT
+  CHECKBOX
+}
+
 // ── Admin Users ────────────────────────────────────────────────────────────
 
 model AdminUser {
@@ -58,6 +67,9 @@ model PublicUser {
   email         String    @unique @db.VarChar(191)
   password      String
   name          String?
+  salutation    String?   @db.VarChar(20)
+  phone         String?   @db.VarChar(50)
+  company       String?   @db.VarChar(200)
   emailVerified Boolean   @default(false)
   verifyToken   String?   @db.VarChar(191)
   resetToken    String?   @db.VarChar(191)
@@ -82,29 +94,29 @@ model Setting {
 // ── Pages ──────────────────────────────────────────────────────────────────
 
 model Page {
-  id            Int           @id @default(autoincrement())
-  slug          String        @unique @db.VarChar(191)
-  template      PageTemplate
-  status        ContentStatus @default(DRAFT)
-  sortOrder     Int           @default(0)
-  parentId      Int?
-  visibility    Visibility    @default(PUBLIC)
+  id             Int           @id @default(autoincrement())
+  slug           String        @unique @db.VarChar(191)
+  template       PageTemplate
+  status         ContentStatus @default(DRAFT)
+  sortOrder      Int           @default(0)
+  visibility     Visibility    @default(PUBLIC)
   restrictedRole String?
-  featuredImage String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  featuredImage  String?
+  mapEmbedUrl    String?       @db.VarChar(1000)
+  contactPhone   String?       @db.VarChar(50)
+  contactEmail   String?       @db.VarChar(200)
+  contactAddress String?       @db.Text
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
-  parent        Page?             @relation("PageHierarchy", fields: [parentId], references: [id])
-  children      Page[]            @relation("PageHierarchy")
-  translations  PageTranslation[]
-  gridItems     GridItem[]
-  // articles whose "home" is this ARTICLE_LIST page
-  childArticles Article[]         @relation("ArticleParentPage")
-  // many-to-many joins
-  galleries     PageGallery[]
+  translations     PageTranslation[]
+  gridItems        GridItem[]
+  childArticles    Article[]         @relation("ArticleParentPage")
+  galleries        PageGallery[]
   featuredArticles PageArticle[]
-  downloads     PageDownload[]
-  messages      Message[]
+  downloads        PageDownload[]
+  messages         Message[]
+  formFields       FormField[]
 
   @@index([status])
   @@index([template])
@@ -126,6 +138,24 @@ model PageTranslation {
   @@unique([pageId, locale])
   @@index([pageId])
   @@map("page_translations")
+}
+
+// ── Form Fields (CONTACT template) ────────────────────────────────────────
+
+model FormField {
+  id        Int           @id @default(autoincrement())
+  pageId    Int
+  type      FormFieldType
+  labelJson Json
+  required  Boolean       @default(false)
+  sortOrder Int           @default(0)
+  options   Json?
+  width     String        @default("full") @db.VarChar(10)
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId])
+  @@map("form_fields")
 }
 
 // ── Grid Items (GRID template) ─────────────────────────────────────────────
@@ -163,23 +193,21 @@ model GridItemTranslation {
 // ── Articles ───────────────────────────────────────────────────────────────
 
 model Article {
-  id            Int           @id @default(autoincrement())
-  // format: {id}-{slugified-title}, not user-editable
-  slug          String        @db.VarChar(500)
-  status        ContentStatus @default(DRAFT)
-  visibility    Visibility    @default(PUBLIC)
+  id             Int           @id @default(autoincrement())
+  slug           String        @db.VarChar(500)
+  status         ContentStatus @default(DRAFT)
+  visibility     Visibility    @default(PUBLIC)
   restrictedRole String?
-  featuredImage String?
-  publishDate   DateTime?
-  authorId      Int?
-  parentPageId  Int
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  featuredImage  String?
+  publishDate    DateTime?
+  authorId       Int?
+  parentPageId   Int
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   author       AdminUser?           @relation(fields: [authorId], references: [id], onDelete: SetNull)
   parentPage   Page                 @relation("ArticleParentPage", fields: [parentPageId], references: [id])
   translations ArticleTranslation[]
-  // many-to-many joins
   galleries    ArticleGallery[]
   downloads    ArticleDownload[]
   featuredOn   PageArticle[]
@@ -276,6 +304,7 @@ model Message {
   email        String
   subject      String
   body         String   @db.Text
+  extraData    Json?
   sourcePageId Int?
   read         Boolean  @default(false)
   createdAt    DateTime @default(now())
@@ -298,8 +327,8 @@ model NavbarItem {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  parent       NavbarItem?            @relation("NavbarHierarchy", fields: [parentId], references: [id])
-  children     NavbarItem[]           @relation("NavbarHierarchy")
+  parent       NavbarItem?             @relation("NavbarHierarchy", fields: [parentId], references: [id])
+  children     NavbarItem[]            @relation("NavbarHierarchy")
   translations NavbarItemTranslation[]
 
   @@map("navbar_items")
@@ -317,7 +346,49 @@ model NavbarItemTranslation {
   @@map("navbar_item_translations")
 }
 
-// ── Join Tables (all with sortOrder) ───────────────────────────────────────
+// ── Footer ─────────────────────────────────────────────────────────────────
+
+model FooterNavItem {
+  id           Int      @id @default(autoincrement())
+  parentId     Int?
+  url          String?  @db.VarChar(1000)
+  linkedPageId Int?
+  sortOrder    Int      @default(0)
+  openInNewTab Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  parent       FooterNavItem?             @relation("FooterNavHierarchy", fields: [parentId], references: [id])
+  children     FooterNavItem[]            @relation("FooterNavHierarchy")
+  translations FooterNavItemTranslation[]
+
+  @@map("footer_nav_items")
+}
+
+model FooterNavItemTranslation {
+  id              Int    @id @default(autoincrement())
+  footerNavItemId Int
+  locale          String @db.VarChar(10)
+  label           String @default("") @db.VarChar(500)
+
+  footerNavItem FooterNavItem @relation(fields: [footerNavItemId], references: [id], onDelete: Cascade)
+
+  @@unique([footerNavItemId, locale])
+  @@map("footer_nav_item_translations")
+}
+
+model FooterSocial {
+  id        Int      @id @default(autoincrement())
+  icon      String
+  url       String   @db.VarChar(1000)
+  label     String   @db.VarChar(200)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("footer_socials")
+}
+
+// ── Join Tables ────────────────────────────────────────────────────────────
 
 model PageGallery {
   pageId    Int

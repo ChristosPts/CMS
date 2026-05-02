@@ -5,7 +5,8 @@
       "PowerShell(npm --version)",
       "PowerShell(npm info next version)",
       "PowerShell(npm info next-auth version)",
-      "PowerShell(npm info @prisma/client version)"
+      "PowerShell(npm info @prisma/client version)",
+      "Bash(dir \"c:\\\\Users\\\\Christos\\\\Desktop\\\\code\\\\cms\\\\app\\\\api\\\\contact\\\\\" 2>&1)"
     ]
   }
 }

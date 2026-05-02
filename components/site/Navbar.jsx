@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import prisma from '@/lib/prisma';
 import { getLocaleConfig } from '@/lib/settings';
 import { getRequestLocale } from '@/lib/locale';
@@ -21,17 +22,18 @@ function resolveHref(item, pages) {
 }
 
 export default async function Navbar() {
-  const [{ activeLocales, defaultLocale }, items, siteSetting] = await Promise.all([
+  const [{ activeLocales, defaultLocale }, items, settings] = await Promise.all([
     getLocaleConfig(),
     prisma.navbarItem.findMany({
       orderBy: [{ sortOrder: 'asc' }],
       include: { translations: true },
     }),
-    prisma.setting.findUnique({ where: { key: 'site_name' } }),
+    prisma.setting.findMany({ where: { key: { in: ['site_name', 'logo'] } } }),
   ]);
 
   const locale   = await getRequestLocale(activeLocales, defaultLocale);
-  const siteName = siteSetting?.value || 'Site';
+  const siteName = settings.find((s) => s.key === 'site_name')?.value || 'Site';
+  const logo     = settings.find((s) => s.key === 'logo')?.value || '';
 
   if (!items.length) return null;
 
@@ -51,8 +53,20 @@ export default async function Navbar() {
   return (
     <nav className="navbar navbar-expand-lg bg-white border-bottom">
       <div className="container">
-        <Link href="/" className="navbar-brand fw-semibold">
-          {siteName}
+        <Link href="/" className="navbar-brand fw-semibold d-flex align-items-center gap-2">
+          {logo ? (
+            <Image
+              src={`/uploads/${logo}`}
+              alt={siteName}
+              width={120}
+              height={36}
+              style={{ objectFit: 'contain', maxHeight: 36, width: 'auto' }}
+              unoptimized
+              priority
+            />
+          ) : (
+            siteName
+          )}
         </Link>
 
         <button

@@ -2,16 +2,22 @@
 
 import { signOut } from 'next-auth/react';
 
-export default function AdminTopbar({ username, role, unreadCount }) {
+export default function AdminTopbar({ username, role, unreadCount, onMenuToggle }) {
   return (
     <header className="admin-topbar">
+      {/* Hamburger — mobile only */}
+      <button
+        type="button"
+        className="btn btn-sm btn-light d-lg-none me-1"
+        onClick={onMenuToggle}
+        aria-label="Toggle navigation"
+      >
+        <i className="bi bi-list fs-5" />
+      </button>
+
       <div className="d-flex align-items-center ms-auto gap-3">
-        {/* Unread messages badge */}
         {unreadCount > 0 && (
-          <a
-            href="/admin/messages"
-            className="btn btn-sm btn-light position-relative"
-          >
+          <a href="/admin/messages" className="btn btn-sm btn-light position-relative">
             <i className="bi bi-envelope" />
             <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
               {unreadCount > 99 ? '99+' : unreadCount}
@@ -19,7 +25,6 @@ export default function AdminTopbar({ username, role, unreadCount }) {
           </a>
         )}
 
-        {/* User info + logout */}
         <div className="dropdown">
           <button
             className="btn btn-sm btn-light dropdown-toggle"

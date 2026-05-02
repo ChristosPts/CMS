@@ -3,41 +3,51 @@ import { getServerSession } from 'next-auth';
 import { adminAuthOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { getLocaleConfig } from '@/lib/settings';
-import NavbarEditor from '@/components/admin/NavbarEditor';
-import LogoUploader from '@/components/admin/LogoUploader';
+import FooterEditor from '@/components/admin/FooterEditor';
 
-export const metadata = { title: 'Navbar' };
+export const metadata = { title: 'Footer' };
 
-export default async function NavbarPage() {
+export default async function FooterPage() {
   const session = await getServerSession(adminAuthOptions);
   if (session?.user?.role !== 'ADMIN') redirect('/admin/dashboard');
 
   const { activeLocales, defaultLocale } = await getLocaleConfig();
 
-  const [rawItems, pages, logoSetting] = await Promise.all([
-    prisma.navbarItem.findMany({
+  const [settings, navItems, socials, pages] = await Promise.all([
+    prisma.setting.findMany({
+      where: { key: { in: ['footer_description', 'footer_copyright', 'footer_privacy_url', 'footer_terms_url', 'footer_email', 'footer_phone', 'footer_address'] } },
+    }),
+    prisma.footerNavItem.findMany({
       orderBy: [{ sortOrder: 'asc' }],
       include: { translations: true },
     }),
+    prisma.footerSocial.findMany({ orderBy: [{ sortOrder: 'asc' }] }),
     prisma.page.findMany({
-      where:   { status: 'PUBLISHED' },
+      where: { status: 'PUBLISHED' },
       orderBy: { sortOrder: 'asc' },
-      select:  {
+      select: {
         id: true, slug: true,
         translations: { where: { locale: defaultLocale }, select: { title: true } },
       },
     }),
-    prisma.setting.findUnique({ where: { key: 'logo' } }),
   ]);
 
-  const topLevel = rawItems
+  const settingsMap = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+
+  const topLevel = navItems
     .filter((i) => !i.parentId)
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((item) => ({
       ...item,
-      children: rawItems
+      labelJson: Object.fromEntries(item.translations.map((t) => [t.locale, t.label])),
+      children:  navItems
         .filter((c) => c.parentId === item.id)
-        .sort((a, b) => a.sortOrder - b.sortOrder),
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((c) => ({
+          ...c,
+          labelJson: Object.fromEntries(c.translations.map((t) => [t.locale, t.label])),
+          children:  [],
+        })),
     }));
 
   const pageOptions = pages.map((p) => ({
@@ -48,19 +58,9 @@ export default async function NavbarPage() {
 
   return (
     <div>
-      <h4 className="mb-4">Navbar</h4>
-
-      {/* Site logo */}
-      <div className="card border-0 shadow-sm mb-4">
-        <div className="card-header fw-semibold">Site Logo</div>
-        <div className="card-body">
-          <p className="text-muted small mb-3">Used in the navbar, footer, and admin sidebar.</p>
-          <LogoUploader currentLogo={logoSetting?.value ?? ''} />
-        </div>
-      </div>
-
-      <NavbarEditor
-        initialTree={topLevel}
+      <h4 className="mb-4">Footer</h4>
+      <FooterEditor
+        initial={{ settings: settingsMap, navTree: topLevel, socials }}
         activeLocales={activeLocales}
         defaultLocale={defaultLocale}
         pageOptions={pageOptions}

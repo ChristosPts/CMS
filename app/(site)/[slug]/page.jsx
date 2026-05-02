@@ -33,6 +33,18 @@ async function fetchPage(slug) {
         orderBy: { sortOrder: 'asc' },
         include: { download: { include: { translations: true } } },
       },
+      formFields: { orderBy: { sortOrder: 'asc' } },
+      featuredArticles: {
+        orderBy: { sortOrder: 'asc' },
+        include: {
+          article: {
+            include: {
+              translations: true,
+              parentPage: { select: { slug: true } },
+            },
+          },
+        },
+      },
     },
   });
 }
@@ -143,11 +155,20 @@ export default async function SlugPage({ params, searchParams }) {
     );
   }
 
+  if (page.template === 'BASIC') {
+    const featuredArticles = (page.featuredArticles ?? [])
+      .filter(({ article }) =>
+        article.status === 'PUBLISHED' &&
+        checkVisibility(article.visibility, article.restrictedRole, session) === 'allowed'
+      )
+      .map(({ article }) => article);
+    return <BasicTemplate {...templateProps} featuredArticles={featuredArticles} />;
+  }
+
   switch (page.template) {
-    case 'BASIC':        return <BasicTemplate {...templateProps} />;
-    case 'GRID':         return <GridTemplate {...templateProps} />;
-    case 'ARTICLE_SINGLE': return <BasicTemplate {...templateProps} />;
-    case 'CONTACT':      return <ContactTemplate {...templateProps} />;
-    default:             notFound();
+    case 'GRID':           return <GridTemplate {...templateProps} />;
+    case 'ARTICLE_SINGLE': return <BasicTemplate {...templateProps} featuredArticles={[]} />;
+    case 'CONTACT':        return <ContactTemplate {...templateProps} locale={locale} defaultLocale={defaultLocale} />;
+    default:               notFound();
   }
 }

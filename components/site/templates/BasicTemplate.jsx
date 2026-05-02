@@ -1,8 +1,17 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import GalleryCarousel from '@/components/site/GalleryCarousel';
 import DownloadList from '@/components/site/DownloadList';
 
-export default function BasicTemplate({ page, translation, locale, defaultLocale }) {
+function pickTrans(translations, locale, defaultLocale) {
+  return (
+    translations.find((t) => t.locale === locale) ??
+    translations.find((t) => t.locale === defaultLocale) ??
+    translations[0]
+  );
+}
+
+export default function BasicTemplate({ page, translation, locale, defaultLocale, featuredArticles = [] }) {
   return (
     <article className="container py-5">
       {/* Featured image */}
@@ -68,7 +77,49 @@ export default function BasicTemplate({ page, translation, locale, defaultLocale
         />
       )}
 
-      {/* Featured Articles connected in Step 12 */}
+
+      {/* Featured Articles */}
+      {featuredArticles.length > 0 && (
+        <div className="mt-5">
+          <div className="row g-4">
+            {featuredArticles.map((article) => {
+              const trans = pickTrans(article.translations, locale, defaultLocale);
+              const articleHref = `/${article.parentPage.slug}/${article.slug}`;
+              return (
+                <div key={article.id} className="col-12 col-sm-6 col-lg-4">
+                  <div className="card h-100 border-0 shadow-sm">
+                    {article.featuredImage && (
+                      <Link href={articleHref}>
+                        <Image
+                          src={`/uploads/thumbnails/thumb_${article.featuredImage}`}
+                          alt={trans?.title ?? ''}
+                          width={400}
+                          height={220}
+                          className="card-img-top"
+                          style={{ objectFit: 'cover', height: 180 }}
+                          unoptimized
+                        />
+                      </Link>
+                    )}
+                    <div className="card-body d-flex flex-column">
+                      <h5 className="card-title fs-6 fw-semibold mb-1">
+                        <Link href={articleHref} className="text-decoration-none text-dark stretched-link">
+                          {trans?.title}
+                        </Link>
+                      </h5>
+                      {trans?.summary && (
+                        <p className="card-text text-muted small mt-1 mb-0 flex-grow-1">
+                          {trans.summary}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </article>
   );
 }
