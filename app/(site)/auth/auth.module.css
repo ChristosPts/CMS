@@ -1,0 +1,12 @@
+.centeredPage {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.authCard {
+  width: 420px;
+  max-width: 100%;
+}

@@ -1,0 +1,9 @@
+/* Global resets and shared custom properties */
+:root {
+  --admin-sidebar-width: 260px;
+  --admin-topbar-height: 56px;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+}

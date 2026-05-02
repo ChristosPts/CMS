@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(node --version)",
+      "PowerShell(npm --version)",
+      "PowerShell(npm info next version)",
+      "PowerShell(npm info next-auth version)",
+      "PowerShell(npm info @prisma/client version)"
+    ]
+  }
+}

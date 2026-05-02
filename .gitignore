@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Prisma
+prisma/migrations/
+
+# Environment — never commit
+.env
+.env.local
+.env.*.local
+
+# Uploads — backed up at VM level
+public/uploads/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

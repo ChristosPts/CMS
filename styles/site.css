@@ -1,0 +1,82 @@
+/* ── Rich text output from TipTap ────────────────────────────────────────── */
+
+.rich-text h1,
+.rich-text h2,
+.rich-text h3,
+.rich-text h4 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.rich-text p {
+  margin-bottom: 1rem;
+  line-height: 1.75;
+}
+
+.rich-text ul,
+.rich-text ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.rich-text li {
+  margin-bottom: 0.25rem;
+}
+
+.rich-text blockquote {
+  border-left: 4px solid #dee2e6;
+  padding-left: 1rem;
+  color: #6c757d;
+  margin: 1.5rem 0;
+}
+
+.rich-text a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.rich-text img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.375rem;
+}
+
+.rich-text table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.rich-text th,
+.rich-text td {
+  border: 1px solid #dee2e6;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.rich-text th {
+  background: #f8f9fa;
+  font-weight: 600;
+}
+
+.rich-text hr {
+  margin: 2rem 0;
+  border-color: #dee2e6;
+}
+
+.rich-text pre,
+.rich-text code {
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  background: #f8f9fa;
+  border-radius: 0.25rem;
+}
+
+.rich-text pre {
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.rich-text code {
+  padding: 0.1em 0.3em;
+  font-size: 0.9em;
+}

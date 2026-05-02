@@ -1,0 +1,380 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ── Enums ──────────────────────────────────────────────────────────────────
+
+enum AdminRole {
+  ADMIN
+  MODERATOR
+}
+
+enum PageTemplate {
+  BASIC
+  GRID
+  ARTICLE_LIST
+  ARTICLE_SINGLE
+  CONTACT
+  HOME
+}
+
+enum ContentStatus {
+  PUBLISHED
+  DRAFT
+  HIDDEN
+}
+
+enum Visibility {
+  PUBLIC
+  AUTHENTICATED_ONLY
+  ROLE_RESTRICTED
+}
+
+// ── Admin Users ────────────────────────────────────────────────────────────
+
+model AdminUser {
+  id        Int       @id @default(autoincrement())
+  username  String    @unique @db.VarChar(191)
+  password  String
+  name      String?
+  role      AdminRole @default(MODERATOR)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  articles Article[]
+
+  @@map("admin_users")
+}
+
+// ── Public Users ───────────────────────────────────────────────────────────
+
+model PublicUser {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique @db.VarChar(191)
+  password      String
+  name          String?
+  emailVerified Boolean   @default(false)
+  verifyToken   String?   @db.VarChar(191)
+  resetToken    String?   @db.VarChar(191)
+  resetTokenExp DateTime?
+  publicRole    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("public_users")
+}
+
+// ── Settings ───────────────────────────────────────────────────────────────
+
+model Setting {
+  key       String   @id @db.VarChar(191)
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+// ── Pages ──────────────────────────────────────────────────────────────────
+
+model Page {
+  id            Int           @id @default(autoincrement())
+  slug          String        @unique @db.VarChar(191)
+  template      PageTemplate
+  status        ContentStatus @default(DRAFT)
+  sortOrder     Int           @default(0)
+  parentId      Int?
+  visibility    Visibility    @default(PUBLIC)
+  restrictedRole String?
+  featuredImage String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  parent        Page?             @relation("PageHierarchy", fields: [parentId], references: [id])
+  children      Page[]            @relation("PageHierarchy")
+  translations  PageTranslation[]
+  gridItems     GridItem[]
+  // articles whose "home" is this ARTICLE_LIST page
+  childArticles Article[]         @relation("ArticleParentPage")
+  // many-to-many joins
+  galleries     PageGallery[]
+  featuredArticles PageArticle[]
+  downloads     PageDownload[]
+  messages      Message[]
+
+  @@index([status])
+  @@index([template])
+  @@map("pages")
+}
+
+model PageTranslation {
+  id              Int     @id @default(autoincrement())
+  pageId          Int
+  locale          String  @db.VarChar(10)
+  title           String  @default("") @db.VarChar(500)
+  summary         String? @db.Text
+  content         String? @db.LongText
+  metaTitle       String? @db.VarChar(500)
+  metaDescription String? @db.Text
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, locale])
+  @@index([pageId])
+  @@map("page_translations")
+}
+
+// ── Grid Items (GRID template) ─────────────────────────────────────────────
+
+model GridItem {
+  id        Int      @id @default(autoincrement())
+  pageId    Int
+  image     String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  page         Page                  @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  translations GridItemTranslation[]
+
+  @@index([pageId])
+  @@map("grid_items")
+}
+
+model GridItemTranslation {
+  id          Int     @id @default(autoincrement())
+  gridItemId  Int
+  locale      String  @db.VarChar(10)
+  name        String  @default("") @db.VarChar(500)
+  subtitle    String? @db.VarChar(500)
+  description String? @db.Text
+
+  gridItem GridItem @relation(fields: [gridItemId], references: [id], onDelete: Cascade)
+
+  @@unique([gridItemId, locale])
+  @@index([gridItemId])
+  @@map("grid_item_translations")
+}
+
+// ── Articles ───────────────────────────────────────────────────────────────
+
+model Article {
+  id            Int           @id @default(autoincrement())
+  // format: {id}-{slugified-title}, not user-editable
+  slug          String        @db.VarChar(500)
+  status        ContentStatus @default(DRAFT)
+  visibility    Visibility    @default(PUBLIC)
+  restrictedRole String?
+  featuredImage String?
+  publishDate   DateTime?
+  authorId      Int?
+  parentPageId  Int
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  author       AdminUser?           @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  parentPage   Page                 @relation("ArticleParentPage", fields: [parentPageId], references: [id])
+  translations ArticleTranslation[]
+  // many-to-many joins
+  galleries    ArticleGallery[]
+  downloads    ArticleDownload[]
+  featuredOn   PageArticle[]
+
+  @@index([parentPageId])
+  @@index([status])
+  @@map("articles")
+}
+
+model ArticleTranslation {
+  id              Int     @id @default(autoincrement())
+  articleId       Int
+  locale          String  @db.VarChar(10)
+  title           String  @default("") @db.VarChar(500)
+  summary         String? @db.Text
+  content         String? @db.LongText
+  metaTitle       String? @db.VarChar(500)
+  metaDescription String? @db.Text
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, locale])
+  @@index([articleId])
+  @@map("article_translations")
+}
+
+// ── Galleries ──────────────────────────────────────────────────────────────
+
+model Gallery {
+  id        Int      @id @default(autoincrement())
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  images   GalleryImage[]
+  pages    PageGallery[]
+  articles ArticleGallery[]
+
+  @@map("galleries")
+}
+
+model GalleryImage {
+  id        Int      @id @default(autoincrement())
+  galleryId Int
+  filename  String
+  alt       String?
+  sortOrder Int      @default(0)
+  hidden    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  gallery Gallery @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+
+  @@index([galleryId])
+  @@map("gallery_images")
+}
+
+// ── Downloads ──────────────────────────────────────────────────────────────
+
+model Download {
+  id           Int      @id @default(autoincrement())
+  filename     String
+  originalName String
+  fileType     String   @db.VarChar(50)
+  fileSize     Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  translations DownloadTranslation[]
+  pages        PageDownload[]
+  articles     ArticleDownload[]
+
+  @@map("downloads")
+}
+
+model DownloadTranslation {
+  id          Int     @id @default(autoincrement())
+  downloadId  Int
+  locale      String  @db.VarChar(10)
+  title       String  @default("") @db.VarChar(500)
+  description String? @db.Text
+
+  download Download @relation(fields: [downloadId], references: [id], onDelete: Cascade)
+
+  @@unique([downloadId, locale])
+  @@index([downloadId])
+  @@map("download_translations")
+}
+
+// ── Contact Messages ───────────────────────────────────────────────────────
+
+model Message {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String
+  subject      String
+  body         String   @db.Text
+  sourcePageId Int?
+  read         Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  sourcePage Page? @relation(fields: [sourcePageId], references: [id], onDelete: SetNull)
+
+  @@index([read])
+  @@map("messages")
+}
+
+// ── Navbar ─────────────────────────────────────────────────────────────────
+
+model NavbarItem {
+  id           Int      @id @default(autoincrement())
+  parentId     Int?
+  url          String?
+  linkedPageId Int?
+  sortOrder    Int      @default(0)
+  openInNewTab Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  parent       NavbarItem?            @relation("NavbarHierarchy", fields: [parentId], references: [id])
+  children     NavbarItem[]           @relation("NavbarHierarchy")
+  translations NavbarItemTranslation[]
+
+  @@map("navbar_items")
+}
+
+model NavbarItemTranslation {
+  id           Int    @id @default(autoincrement())
+  navbarItemId Int
+  locale       String @db.VarChar(10)
+  label        String @default("") @db.VarChar(500)
+
+  navbarItem NavbarItem @relation(fields: [navbarItemId], references: [id], onDelete: Cascade)
+
+  @@unique([navbarItemId, locale])
+  @@map("navbar_item_translations")
+}
+
+// ── Join Tables (all with sortOrder) ───────────────────────────────────────
+
+model PageGallery {
+  pageId    Int
+  galleryId Int
+  sortOrder Int @default(0)
+
+  page    Page    @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  gallery Gallery @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+
+  @@id([pageId, galleryId])
+  @@map("page_galleries")
+}
+
+model PageArticle {
+  pageId    Int
+  articleId Int
+  sortOrder Int @default(0)
+
+  page    Page    @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@id([pageId, articleId])
+  @@map("page_articles")
+}
+
+model PageDownload {
+  pageId     Int
+  downloadId Int
+  sortOrder  Int @default(0)
+
+  page     Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  download Download @relation(fields: [downloadId], references: [id], onDelete: Cascade)
+
+  @@id([pageId, downloadId])
+  @@map("page_downloads")
+}
+
+model ArticleGallery {
+  articleId Int
+  galleryId Int
+  sortOrder Int @default(0)
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  gallery Gallery @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, galleryId])
+  @@map("article_galleries")
+}
+
+model ArticleDownload {
+  articleId  Int
+  downloadId Int
+  sortOrder  Int @default(0)
+
+  article  Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  download Download @relation(fields: [downloadId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, downloadId])
+  @@map("article_downloads")
+}
