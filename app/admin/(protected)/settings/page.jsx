@@ -20,13 +20,18 @@ export default async function SettingsPage() {
   } catch { /* use default */ }
 
   const initial = {
-    site_name:            settings.site_name ?? '',
-    contact_email:        settings.contact_email ?? '',
-    default_locale:       settings.default_locale ?? 'en',
-    active_locales:       activeLocales,
-    registration_enabled: settings.registration_enabled !== 'false',
-    maintenance_mode:     settings.maintenance_mode === 'true',
-    mail_provider:        settings.mail_provider ?? 'gmail',
+    site_name:                   settings.site_name ?? '',
+    contact_email:               settings.contact_email ?? '',
+    default_locale:              settings.default_locale ?? 'en',
+    active_locales:              activeLocales,
+    registration_enabled:        settings.registration_enabled !== 'false',
+    register_salutation_enabled: settings.register_salutation_enabled === 'true',
+    register_phone_enabled:      settings.register_phone_enabled === 'true',
+    register_company_enabled:    settings.register_company_enabled === 'true',
+    maintenance_mode:            settings.maintenance_mode === 'true',
+    mail_provider:               settings.mail_provider ?? 'gmail',
+    breadcrumb_enabled:          settings.breadcrumb_enabled !== 'false',
+    mobile_nav_style:            settings.mobile_nav_style ?? 'accordion',
   };
 
   return (

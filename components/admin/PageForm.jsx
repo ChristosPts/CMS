@@ -41,6 +41,8 @@ export default function PageForm({ initial, activeLocales, defaultLocale, role, 
   const [connGalleries,  setConnGalleries]  = useState(initialConnections?.galleries  ?? []);
   const [connDownloads,  setConnDownloads]  = useState(initialConnections?.downloads  ?? []);
   const [connArticles,   setConnArticles]   = useState(initialConnections?.articles   ?? []);
+  // View style (GRID + ARTICLE_LIST templates)
+  const [viewStyle,      setViewStyle]      = useState(initial?.viewStyle      ?? 'GRID');
   // CONTACT template fields
   const [mapEmbedUrl,    setMapEmbedUrl]    = useState(initial?.mapEmbedUrl    ?? '');
   const [contactPhone,   setContactPhone]   = useState(initial?.contactPhone   ?? '');
@@ -100,6 +102,7 @@ export default function PageForm({ initial, activeLocales, defaultLocale, role, 
       restrictedRole: visibility === 'ROLE_RESTRICTED' ? restrictedRole : null,
       slug:           role === 'ADMIN' ? slug : undefined,
       featuredImage:  featuredImage ?? null,
+      viewStyle,
       mapEmbedUrl:    mapEmbedUrl   || null,
       contactPhone:   contactPhone  || null,
       contactEmail:   contactEmail  || null,
@@ -279,6 +282,16 @@ export default function PageForm({ initial, activeLocales, defaultLocale, role, 
                   ))}
                 </select>
               </div>
+
+              {(template === 'GRID' || template === 'ARTICLE_LIST') && (
+                <div className="mb-3">
+                  <label className="form-label small">Display style</label>
+                  <select className="form-select form-select-sm" value={viewStyle} onChange={(e) => setViewStyle(e.target.value)}>
+                    <option value="GRID">Grid (cards)</option>
+                    <option value="LIST">List (wide rows)</option>
+                  </select>
+                </div>
+              )}
 
               <div className="mb-3">
                 <label className="form-label small">Visibility</label>

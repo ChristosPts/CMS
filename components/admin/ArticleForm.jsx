@@ -15,12 +15,14 @@ const VISIBILITIES = [
 export default function ArticleForm({
   initial, activeLocales, defaultLocale,
   parentPageId, sectionSlug, articleId, initialConnections,
+  availableCategories = [], initialCategories = [],
 }) {
   const router  = useRouter();
   const isEdit  = Boolean(articleId);
 
   // ── Fields ───────────────────────────────────────────────────────────────
   const [status,         setStatus]         = useState(initial?.status         ?? 'DRAFT');
+  const [categories,     setCategories]     = useState(initialCategories);
   const [visibility,     setVisibility]     = useState(initial?.visibility     ?? 'PUBLIC');
   const [restrictedRole, setRestrictedRole] = useState(initial?.restrictedRole ?? '');
   const [featuredImage,  setFeaturedImage]  = useState(initial?.featuredImage  ?? null);
@@ -78,6 +80,7 @@ export default function ArticleForm({
       translations:   activeLocales.map((loc) => ({ locale: loc, ...translations[loc] })),
       galleries:  connGalleries.map((g) => ({ id: g.id, sortOrder: g.sortOrder })),
       downloads:  connDownloads.map((d) => ({ id: d.id, sortOrder: d.sortOrder })),
+      categories,
     };
 
     const url    = isEdit ? `/api/admin/articles/${articleId}` : '/api/admin/articles';
@@ -275,6 +278,33 @@ export default function ArticleForm({
               />
             </div>
           </div>
+
+          {/* Categories */}
+          {availableCategories.length > 0 && (
+            <div className="card border-0 shadow-sm mb-3">
+              <div className="card-header fw-semibold">Categories</div>
+              <div className="card-body">
+                <div className="d-flex flex-wrap gap-2">
+                  {availableCategories.map((cat) => {
+                    const trans = cat.translations.find((t) => t.locale === defaultLocale) ?? cat.translations[0];
+                    const selected = categories.includes(cat.id);
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        className={`btn btn-sm ${selected ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        onClick={() => setCategories((prev) =>
+                          selected ? prev.filter((id) => id !== cat.id) : [...prev, cat.id]
+                        )}
+                      >
+                        {trans?.name ?? cat.slug}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Slug (read-only) */}
           {isEdit && initial?.slug && (

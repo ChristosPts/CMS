@@ -44,6 +44,11 @@ enum FormFieldType {
   CHECKBOX
 }
 
+enum ViewStyle {
+  GRID
+  LIST
+}
+
 // ── Admin Users ────────────────────────────────────────────────────────────
 
 model AdminUser {
@@ -106,6 +111,7 @@ model Page {
   contactPhone   String?       @db.VarChar(50)
   contactEmail   String?       @db.VarChar(200)
   contactAddress String?       @db.Text
+  viewStyle      ViewStyle     @default(GRID)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -161,12 +167,14 @@ model FormField {
 // ── Grid Items (GRID template) ─────────────────────────────────────────────
 
 model GridItem {
-  id        Int      @id @default(autoincrement())
-  pageId    Int
-  image     String?
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  pageId      Int
+  image       String?
+  linkUrl     String?  @db.VarChar(1000)
+  openInNewTab Boolean @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   page         Page                  @relation(fields: [pageId], references: [id], onDelete: Cascade)
   translations GridItemTranslation[]
@@ -181,7 +189,7 @@ model GridItemTranslation {
   locale      String  @db.VarChar(10)
   name        String  @default("") @db.VarChar(500)
   subtitle    String? @db.VarChar(500)
-  description String? @db.Text
+  description String? @db.LongText
 
   gridItem GridItem @relation(fields: [gridItemId], references: [id], onDelete: Cascade)
 
@@ -211,6 +219,7 @@ model Article {
   galleries    ArticleGallery[]
   downloads    ArticleDownload[]
   featuredOn   PageArticle[]
+  categories   ArticleToCategory[]
 
   @@index([parentPageId])
   @@index([status])
@@ -232,6 +241,44 @@ model ArticleTranslation {
   @@unique([articleId, locale])
   @@index([articleId])
   @@map("article_translations")
+}
+
+// ── Article Categories ─────────────────────────────────────────────────────
+
+model ArticleCategory {
+  id        Int      @id @default(autoincrement())
+  slug      String   @unique @db.VarChar(191)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  translations ArticleCategoryTranslation[]
+  articles     ArticleToCategory[]
+
+  @@map("article_categories")
+}
+
+model ArticleCategoryTranslation {
+  id         Int    @id @default(autoincrement())
+  categoryId Int
+  locale     String @db.VarChar(10)
+  name       String @default("") @db.VarChar(500)
+
+  category ArticleCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, locale])
+  @@map("article_category_translations")
+}
+
+model ArticleToCategory {
+  articleId  Int
+  categoryId Int
+
+  article  Article         @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  category ArticleCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, categoryId])
+  @@map("article_to_categories")
 }
 
 // ── Galleries ──────────────────────────────────────────────────────────────

@@ -9,10 +9,13 @@ export default async function NewArticlePage({ params }) {
   const { section } = await params;
   const { activeLocales, defaultLocale } = await getLocaleConfig();
 
-  const sectionPage = await prisma.page.findFirst({
-    where: { slug: section, template: 'ARTICLE_LIST' },
-    include: { translations: { where: { locale: defaultLocale } } },
-  });
+  const [sectionPage, allCategories] = await Promise.all([
+    prisma.page.findFirst({
+      where: { slug: section, template: 'ARTICLE_LIST' },
+      include: { translations: { where: { locale: defaultLocale } } },
+    }),
+    prisma.articleCategory.findMany({ orderBy: { sortOrder: 'asc' }, include: { translations: true } }),
+  ]);
   if (!sectionPage) notFound();
 
   const sectionTitle = sectionPage.translations[0]?.title ?? section;
@@ -31,6 +34,7 @@ export default async function NewArticlePage({ params }) {
         defaultLocale={defaultLocale}
         parentPageId={sectionPage.id}
         sectionSlug={section}
+        availableCategories={allCategories}
       />
     </div>
   );

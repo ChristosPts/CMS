@@ -4,7 +4,7 @@ import { useState } from 'react';
 import AdminSidebar from './AdminSidebar';
 import AdminTopbar from './AdminTopbar';
 
-export default function AdminShell({ role, articleSections, contactPages, siteName, logo, unreadCount, username, children }) {
+export default function AdminShell({ role, articleSections, gridSections, contactPages, siteName, logo, unreadCount, username, children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -12,6 +12,7 @@ export default function AdminShell({ role, articleSections, contactPages, siteNa
       <AdminSidebar
         role={role}
         articleSections={articleSections}
+        gridSections={gridSections}
         contactPages={contactPages}
         siteName={siteName}
         logo={logo}

@@ -1,11 +1,13 @@
 import ContactForm from '@/components/site/ContactForm';
+import Breadcrumb from '@/components/site/Breadcrumb';
 
-export default function ContactTemplate({ page, translation, locale, defaultLocale }) {
+export default function ContactTemplate({ page, translation, locale, defaultLocale, breadcrumbItems }) {
   const hasMap     = Boolean(page.mapEmbedUrl);
   const hasContact = page.contactPhone || page.contactEmail || page.contactAddress;
 
   return (
     <div className="container py-5">
+      <Breadcrumb items={breadcrumbItems} />
       <h1 className="mb-4">{translation.title}</h1>
 
       {/* Map + Form row */}

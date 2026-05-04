@@ -39,9 +39,12 @@ const updateSchema = z.object({
   downloads:      z.array(z.object({ id: z.number().int(), sortOrder: z.number().int() })).optional().default([]),
   articles:       z.array(z.object({ id: z.number().int(), sortOrder: z.number().int() })).optional().default([]),
   formFields:     z.array(formFieldSchema).optional().default([]),
+  viewStyle:      z.enum(['GRID', 'LIST']).optional().default('GRID'),
   gridItems:      z.array(z.object({
     id:           z.number().int().nullable().optional(),
     image:        z.string().nullable().optional(),
+    linkUrl:      z.string().nullable().optional(),
+    openInNewTab: z.boolean().optional().default(false),
     sortOrder:    z.number().int(),
     translations: z.array(z.object({
       locale:      z.string().min(2).max(10),
@@ -117,6 +120,7 @@ export async function PUT(req, { params }) {
       contactPhone:   d.contactPhone   ?? null,
       contactEmail:   d.contactEmail   ?? null,
       contactAddress: d.contactAddress ?? null,
+      viewStyle:      d.viewStyle      ?? 'GRID',
       translations: {
         deleteMany: {},
         create: d.translations.map((t) => ({
@@ -149,11 +153,11 @@ export async function PUT(req, { params }) {
       if (item.id && existingIds.has(item.id)) {
         await prisma.gridItem.update({
           where: { id: item.id },
-          data: { image: item.image ?? null, sortOrder: item.sortOrder, translations: { deleteMany: {}, create: transData } },
+          data: { image: item.image ?? null, linkUrl: item.linkUrl ?? null, openInNewTab: item.openInNewTab ?? false, sortOrder: item.sortOrder, translations: { deleteMany: {}, create: transData } },
         });
       } else {
         await prisma.gridItem.create({
-          data: { pageId: id, image: item.image ?? null, sortOrder: item.sortOrder, translations: { create: transData } },
+          data: { pageId: id, image: item.image ?? null, linkUrl: item.linkUrl ?? null, openInNewTab: item.openInNewTab ?? false, sortOrder: item.sortOrder, translations: { create: transData } },
         });
       }
     }

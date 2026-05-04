@@ -7,6 +7,7 @@ import BasicTemplate       from '@/components/site/templates/BasicTemplate';
 import GridTemplate        from '@/components/site/templates/GridTemplate';
 import ArticleListTemplate from '@/components/site/templates/ArticleListTemplate';
 import ContactTemplate     from '@/components/site/templates/ContactTemplate';
+import Breadcrumb          from '@/components/site/Breadcrumb';
 
 // ── Data fetcher ───────────────────────────────────────────────────────────
 
@@ -100,7 +101,11 @@ export async function generateMetadata({ params }) {
 
 export default async function SlugPage({ params, searchParams }) {
   const { slug } = await params;
-  const [page, session] = await Promise.all([fetchPage(slug), getSiteSession()]);
+  const [page, session, breadcrumbSetting] = await Promise.all([
+    fetchPage(slug),
+    getSiteSession(),
+    prisma.setting.findUnique({ where: { key: 'breadcrumb_enabled' } }),
+  ]);
 
   if (!page) notFound();
 
@@ -119,29 +124,53 @@ export default async function SlugPage({ params, searchParams }) {
 
   if (!translation) notFound();
 
-  const templateProps = { page, translation, locale, defaultLocale };
+  const showBreadcrumb  = breadcrumbSetting?.value !== 'false';
+  const breadcrumbItems = showBreadcrumb
+    ? [{ label: 'Home', href: '/' }, { label: translation.title }]
+    : null;
 
-  // ── ARTICLE_LIST — session-aware article filter ────────────────────────
+  const templateProps = { page, translation, locale, defaultLocale, breadcrumbItems };
+
+  // ── ARTICLE_LIST — session-aware article filter + search/category/sort ──
   if (page.template === 'ARTICLE_LIST') {
-    const sp = await searchParams;
+    const sp          = await searchParams;
     const articlePage = Math.max(1, parseInt(sp?.page ?? '1', 10));
     const perPage     = 12;
+    const searchQuery = sp?.q ?? '';
+    const activeCategory = sp?.cat ?? '';
+    const sortDir     = sp?.sort === 'asc' ? 'asc' : 'desc';
+
+    // Resolve category slug → id
+    let categoryId = null;
+    if (activeCategory) {
+      const cat = await prisma.articleCategory.findUnique({ where: { slug: activeCategory } });
+      categoryId = cat?.id ?? null;
+    }
 
     const articleWhere = {
       parentPageId: page.id,
       status:       'PUBLISHED',
       ...visibilityFilter(session),
+      ...(searchQuery ? { translations: { some: { title: { contains: searchQuery } } } } : {}),
+      ...(categoryId  ? { categories: { some: { categoryId } } } : {}),
     };
 
-    const [articles, articleCount] = await Promise.all([
+    const [articles, articleCount, allCategories] = await Promise.all([
       prisma.article.findMany({
         where:   articleWhere,
-        orderBy: [{ publishDate: 'desc' }, { createdAt: 'desc' }],
+        orderBy: [{ publishDate: sortDir }, { createdAt: sortDir }],
         skip:    (articlePage - 1) * perPage,
         take:    perPage,
-        include: { translations: true },
+        include: {
+          translations: true,
+          categories: { include: { category: { include: { translations: true } } } },
+        },
       }),
       prisma.article.count({ where: articleWhere }),
+      prisma.articleCategory.findMany({
+        orderBy:  { sortOrder: 'asc' },
+        include:  { translations: true },
+      }),
     ]);
 
     return (
@@ -151,6 +180,10 @@ export default async function SlugPage({ params, searchParams }) {
         articleCount={articleCount}
         articlePage={articlePage}
         perPage={perPage}
+        categories={allCategories}
+        activeCategory={activeCategory}
+        searchQuery={searchQuery}
+        sortDir={sortDir}
       />
     );
   }

@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import GalleryCarousel from '@/components/site/GalleryCarousel';
 import DownloadList from '@/components/site/DownloadList';
+import Breadcrumb from '@/components/site/Breadcrumb';
 
 function pickTrans(translations, locale, defaultLocale) {
   return (
@@ -11,9 +12,10 @@ function pickTrans(translations, locale, defaultLocale) {
   );
 }
 
-export default function BasicTemplate({ page, translation, locale, defaultLocale, featuredArticles = [] }) {
+export default function BasicTemplate({ page, translation, locale, defaultLocale, featuredArticles = [], breadcrumbItems }) {
   return (
     <article className="container py-5">
+      <Breadcrumb items={breadcrumbItems} />
       {/* Featured image */}
       {page.featuredImage && (
         <div className="mb-4">

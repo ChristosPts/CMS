@@ -19,6 +19,7 @@ const updateSchema = z.object({
   restrictedRole: z.string().nullable().optional(),
   featuredImage:  z.string().nullable().optional(),
   publishDate:    z.string().nullable().optional(),
+  categories:     z.array(z.number().int()).optional().default([]),
   galleries:      z.array(z.object({ id: z.number().int(), sortOrder: z.number().int() })).optional().default([]),
   downloads:      z.array(z.object({ id: z.number().int(), sortOrder: z.number().int() })).optional().default([]),
   translations:   z.array(translationSchema).min(1),
@@ -91,15 +92,19 @@ export async function PUT(req, { params }) {
     include: { translations: true },
   });
 
-  // Sync connections
+  // Sync connections + categories
   await prisma.$transaction([
     prisma.articleGallery.deleteMany({ where: { articleId: id } }),
     prisma.articleDownload.deleteMany({ where: { articleId: id } }),
+    prisma.articleToCategory.deleteMany({ where: { articleId: id } }),
     ...d.galleries.map(({ id: galleryId, sortOrder }) =>
       prisma.articleGallery.create({ data: { articleId: id, galleryId, sortOrder } })
     ),
     ...d.downloads.map(({ id: downloadId, sortOrder }) =>
       prisma.articleDownload.create({ data: { articleId: id, downloadId, sortOrder } })
+    ),
+    ...(d.categories ?? []).map((categoryId) =>
+      prisma.articleToCategory.create({ data: { articleId: id, categoryId } })
     ),
   ]);
 

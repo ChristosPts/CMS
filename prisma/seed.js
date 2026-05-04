@@ -38,6 +38,8 @@ async function main() {
     { key: 'footer_email',                value: '' },
     { key: 'footer_phone',                value: '' },
     { key: 'footer_address',              value: '' },
+    { key: 'breadcrumb_enabled',          value: 'true' },
+    { key: 'mobile_nav_style',            value: 'accordion' },
   ];
 
   for (const s of defaults) {

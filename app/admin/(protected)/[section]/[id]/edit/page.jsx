@@ -12,7 +12,7 @@ export default async function EditArticlePage({ params }) {
 
   const { activeLocales, defaultLocale } = await getLocaleConfig();
 
-  const [sectionPage, article] = await Promise.all([
+  const [sectionPage, article, allCategories] = await Promise.all([
     prisma.page.findFirst({
       where: { slug: section, template: 'ARTICLE_LIST' },
       include: { translations: { where: { locale: defaultLocale } } },
@@ -21,6 +21,7 @@ export default async function EditArticlePage({ params }) {
       where: { id },
       include: {
         translations: true,
+        categories: { select: { categoryId: true } },
         galleries: {
           orderBy: { sortOrder: 'asc' },
           include: {
@@ -33,6 +34,7 @@ export default async function EditArticlePage({ params }) {
         },
       },
     }),
+    prisma.articleCategory.findMany({ orderBy: { sortOrder: 'asc' }, include: { translations: true } }),
   ]);
 
   if (!sectionPage || !article || article.parentPageId !== sectionPage.id) notFound();
@@ -96,6 +98,8 @@ export default async function EditArticlePage({ params }) {
         sectionSlug={section}
         articleId={id}
         initialConnections={initialConnections}
+        availableCategories={allCategories}
+        initialCategories={article.categories.map((c) => c.categoryId)}
       />
     </div>
   );

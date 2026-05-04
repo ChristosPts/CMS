@@ -6,6 +6,7 @@ import { getRequestLocale, pickTranslation } from '@/lib/locale';
 import { getSiteSession, checkVisibility } from '@/lib/siteAuth';
 import GalleryCarousel from '@/components/site/GalleryCarousel';
 import DownloadList from '@/components/site/DownloadList';
+import Breadcrumb from '@/components/site/Breadcrumb';
 
 // Parse article ID from the slug format: "{id}-{rest}"
 function parseArticleId(articleSlug) {
@@ -29,6 +30,9 @@ async function fetchArticle(parentSlug, articleSlug) {
         select: { slug: true, translations: { select: { locale: true, title: true } } },
       },
       author: { select: { name: true, username: true } },
+      categories: {
+        include: { category: { include: { translations: true } } },
+      },
       galleries: {
         orderBy: { sortOrder: 'asc' },
         include: {
@@ -98,9 +102,10 @@ export async function generateMetadata({ params }) {
 
 export default async function ArticlePage({ params }) {
   const { slug, articleSlug } = await params;
-  const [article, session] = await Promise.all([
+  const [article, session, breadcrumbSetting] = await Promise.all([
     fetchArticle(slug, articleSlug),
     getSiteSession(),
+    prisma.setting.findUnique({ where: { key: 'breadcrumb_enabled' } }),
   ]);
 
   if (!article) notFound();
@@ -153,15 +158,13 @@ export default async function ArticlePage({ params }) {
       <article className="container py-5">
         <div className="row justify-content-center">
           <div className="col-12 col-lg-8">
-            {/* Breadcrumb */}
-            <nav className="mb-3">
-              <ol className="breadcrumb">
-                <li className="breadcrumb-item">
-                  <a href={`/${slug}`}>{parentTitle}</a>
-                </li>
-                <li className="breadcrumb-item active">{translation.title}</li>
-              </ol>
-            </nav>
+            {breadcrumbSetting?.value !== 'false' && (
+              <Breadcrumb items={[
+                { label: 'Home', href: '/' },
+                { label: parentTitle, href: `/${slug}` },
+                { label: translation.title },
+              ]} />
+            )}
 
             {/* Featured image */}
             {article.featuredImage && (
@@ -192,6 +195,24 @@ export default async function ArticlePage({ params }) {
                 </span>
               )}
             </div>
+
+            {/* Category chips — click goes back to section with filter */}
+            {article.categories?.length > 0 && (
+              <div className="d-flex flex-wrap gap-2 mb-4">
+                {article.categories.map(({ category }) => {
+                  const catTrans = pickTranslation(category.translations, locale, defaultLocale);
+                  return (
+                    <a
+                      key={category.id}
+                      href={`/${slug}?cat=${category.slug}`}
+                      className="badge bg-light text-dark border text-decoration-none fw-normal px-3 py-2"
+                    >
+                      {catTrans?.name ?? category.slug}
+                    </a>
+                  );
+                })}
+              </div>
+            )}
 
             {translation.summary && (
               <p className="lead text-muted mb-4">{translation.summary}</p>

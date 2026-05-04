@@ -6,7 +6,12 @@
       "PowerShell(npm info next version)",
       "PowerShell(npm info next-auth version)",
       "PowerShell(npm info @prisma/client version)",
-      "Bash(dir \"c:\\\\Users\\\\Christos\\\\Desktop\\\\code\\\\cms\\\\app\\\\api\\\\contact\\\\\" 2>&1)"
+      "Bash(dir \"c:\\\\Users\\\\Christos\\\\Desktop\\\\code\\\\cms\\\\app\\\\api\\\\contact\\\\\" 2>&1)",
+      "Bash(mkdir -p \"c:\\\\Users\\\\Christos\\\\Desktop\\\\code\\\\cms\\\\app\\\\admin\\\\\\(protected\\)\\\\grid\\\\[pageId]\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\Christos\\\\Desktop\\\\code\\\\cms\\\\app\\\\api\\\\admin\\\\grid\\\\[pageId]\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\Christos\\\\Desktop\\\\code\\\\cms\\\\app\\\\admin\\\\\\(protected\\)\\\\grid\\\\[pageId]\\\\new\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\Christos\\\\Desktop\\\\code\\\\cms\\\\app\\\\admin\\\\\\(protected\\)\\\\grid\\\\[pageId]\\\\[itemId]\\\\edit\")",
+      "Bash(dir \"c:\\\\Users\\\\Christos\\\\Desktop\\\\code\\\\cms\\\\app\\\\admin\\\\\\(protected\\)\" /b)"
     ]
   }
 }

@@ -24,6 +24,7 @@ const createSchema = z.object({
   contactPhone:   z.string().nullable().optional(),
   contactEmail:   z.string().nullable().optional(),
   contactAddress: z.string().nullable().optional(),
+  viewStyle:      z.enum(['GRID', 'LIST']).optional().default('GRID'),
   galleries:      z.array(z.object({ id: z.number().int(), sortOrder: z.number().int() })).optional().default([]),
   downloads:      z.array(z.object({ id: z.number().int(), sortOrder: z.number().int() })).optional().default([]),
   articles:       z.array(z.object({ id: z.number().int(), sortOrder: z.number().int() })).optional().default([]),
@@ -112,6 +113,7 @@ export async function POST(req) {
       contactPhone:   d.contactPhone   ?? null,
       contactEmail:   d.contactEmail   ?? null,
       contactAddress: d.contactAddress ?? null,
+      viewStyle:      d.viewStyle      ?? 'GRID',
       translations: {
         create: d.translations.map((t) => ({
           locale: t.locale, title: t.title, summary: t.summary,

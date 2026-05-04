@@ -30,15 +30,14 @@ export default async function NavbarPage() {
     prisma.setting.findUnique({ where: { key: 'logo' } }),
   ]);
 
-  const topLevel = rawItems
-    .filter((i) => !i.parentId)
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((item) => ({
-      ...item,
-      children: rawItems
-        .filter((c) => c.parentId === item.id)
-        .sort((a, b) => a.sortOrder - b.sortOrder),
-    }));
+  function buildTree(items, parentId = null, depth = 0) {
+    if (depth >= 3) return [];
+    return items
+      .filter((i) => (i.parentId ?? null) === parentId)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((item) => ({ ...item, children: buildTree(items, item.id, depth + 1) }));
+  }
+  const topLevel = buildTree(rawItems);
 
   const pageOptions = pages.map((p) => ({
     id:    p.id,

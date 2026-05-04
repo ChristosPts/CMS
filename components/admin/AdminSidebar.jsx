@@ -43,7 +43,7 @@ function SidebarGroup({ id, label, links, pathname, openId, onToggle, onNavClick
   );
 }
 
-export default function AdminSidebar({ role, articleSections, contactPages, siteName, logo, unreadCount, open, onClose }) {
+export default function AdminSidebar({ role, articleSections, gridSections, contactPages, siteName, logo, unreadCount, open, onClose }) {
   const pathname = usePathname();
 
   const groups = [
@@ -51,10 +51,17 @@ export default function AdminSidebar({ role, articleSections, contactPages, site
       id: 'content',
       label: 'Content',
       links: [
-        { href: '/admin/pages', icon: 'layout-text-sidebar-reverse', label: 'Pages', badge: 0 },
+        { href: '/admin/pages',      icon: 'layout-text-sidebar-reverse', label: 'Pages',      badge: 0 },
+        { href: '/admin/categories', icon: 'tags',                        label: 'Categories',  badge: 0 },
         ...articleSections.map((p) => ({
           href:  `/admin/${p.slug}`,
           icon:  'file-earmark-text',
+          label: p.label,
+          badge: 0,
+        })),
+        ...gridSections.map((p) => ({
+          href:  `/admin/grid/${p.id}`,
+          icon:  'grid',
           label: p.label,
           badge: 0,
         })),

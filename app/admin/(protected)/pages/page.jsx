@@ -1,12 +1,14 @@
 import { getServerSession } from 'next-auth';
 import { adminAuthOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { getDefaultLocale } from '@/lib/settings';
 import PagesTable from '@/components/admin/PagesTable';
 
 export const metadata = { title: 'Pages' };
 
 export default async function PagesListPage({ searchParams }) {
-  const session  = await getServerSession(adminAuthOptions);
+  const session       = await getServerSession(adminAuthOptions);
+  const defaultLocale = await getDefaultLocale();
   const sp = await searchParams;
   const search   = sp.search   ?? '';
   const status   = sp.status   ?? '';
@@ -34,7 +36,7 @@ export default async function PagesListPage({ searchParams }) {
       select: {
         id: true, slug: true, template: true, status: true,
         sortOrder: true, updatedAt: true,
-        translations: { select: { locale: true, title: true } },
+        translations: { where: { locale: defaultLocale }, select: { title: true } },
       },
     }),
     prisma.page.count({ where }),
